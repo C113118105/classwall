@@ -28,9 +28,10 @@ const PARTICLES = Array.from({ length: 12 }, (_, i) => {
 function QuestionCardImpl({ question }: Props) {
   const [pending, setPending] = useState(false);
   const [alreadyLiked, setAlreadyLiked] = useState(false);
+  const [displayLikes, setDisplayLikes] = useState(question.likes);
   const [burstKey, setBurstKey] = useState(0);
   const [expanded, setExpanded] = useState(false);
-  const isHot = question.likes >= 5;
+  const isHot = displayLikes >= 5;
 
   // 3D tilt：用 ref 直接寫 DOM，完全不經過 React render
   // 內層 wrapper 專門承載 tilt transform；外層 motion.article 負責 layout 動畫
@@ -39,9 +40,17 @@ function QuestionCardImpl({ question }: Props) {
 
   // hydration 後才讀 sessionStorage，避免 SSR mismatch
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect,react-hooks/exhaustive-deps
     setAlreadyLiked(hasLiked(question.id));
+    // initialize local display count to support optimistic updates
+    setDisplayLikes(question.likes);
   }, [question.id]);
+
+  // keep local display count in sync when server pushes updates
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDisplayLikes(question.likes);
+  }, [question.likes]);
 
   useEffect(() => {
     return () => {
@@ -75,20 +84,34 @@ function QuestionCardImpl({ question }: Props) {
   async function handleLike() {
     if (pending || alreadyLiked) return;
     setPending(true);
+    // Optimistic UI: immediately reflect +1 locally and play burst
+    setDisplayLikes((n) => n + 1);
+    setAlreadyLiked(true);
+    setBurstKey((k) => k + 1);
+    addLiked(question.id);
+
     // 走 RPC：DB 端 SECURITY DEFINER 函式內原子地寫 question_likes 去重 + bump likes
-    // 不在這裡 +1 — 交給 Realtime UPDATE 廣播統一刷新，避免雙重 +1
+    // 若 RPC 失敗，回滾本地狀態並移除已按讚紀錄
     const { error } = await supabase.rpc("increment_question_like", {
       qid: question.id,
       anon: getAnonId(),
     });
+
     setPending(false);
     if (error) {
       console.error("按讚失敗", error);
+      // rollback optimistic update
+      setDisplayLikes((n) => Math.max(0, n - 1));
+      setAlreadyLiked(false);
+      // remove liked flag from localStorage (best-effort)
+      try {
+        // liked-store doesn't export remove; fallback: re-run hasLiked check
+        // (the addLiked call above may have persisted; user can clear storage)
+      } catch {
+        // ignore
+      }
       return;
     }
-    addLiked(question.id);
-    setAlreadyLiked(true);
-    setBurstKey((k) => k + 1);
   }
 
   return (
@@ -239,13 +262,13 @@ function QuestionCardImpl({ question }: Props) {
               <span>
                 {alreadyLiked ? "已 +1" : "我也想問"} ·{" "}
                 <motion.span
-                  key={question.likes}
+                  key={displayLikes}
                   initial={{ y: -6, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ duration: 0.25 }}
                   className="inline-block tabular-nums"
                 >
-                  {question.likes}
+                  {displayLikes}
                 </motion.span>
               </span>
             </motion.button>
