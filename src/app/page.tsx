@@ -32,9 +32,9 @@ export default function Home() {
 
   // 排序由 DB + useRestaurants hook 統一負責，這裡直接渲染
   const avgRating = useMemo(
-    () => (restaurants.length > 0
+    () => (restaurants.length > 0 
       ? (restaurants.reduce((sum, r) => sum + r.avg_rating, 0) / restaurants.length).toFixed(1)
-      : 0),
+      : "0"),
     [restaurants]
   );
 

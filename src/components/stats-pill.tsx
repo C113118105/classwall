@@ -6,23 +6,24 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   label: string;
-  value: number;
+  value: number | string;
   accent?: boolean;
 };
 
 // 0 → target 的平滑滾動（easeOutCubic）
 // 隔離在子元件，rAF 觸發的 setState 不會傳染到父層
-function useCountUp(target: number, duration = 700) {
-  const [value, setValue] = useState(target);
+function useCountUp(target: number | string, duration = 700) {
+  const numTarget = typeof target === "string" ? parseFloat(target) : target;
+  const [value, setValue] = useState(numTarget);
   const rafRef = useRef<number | undefined>(undefined);
-  const fromRef = useRef(target);
+  const fromRef = useRef(numTarget);
 
   useEffect(() => {
     const from = fromRef.current;
-    if (from === target) return;
+    if (from === numTarget) return;
 
     const start = performance.now();
-    const delta = target - from;
+    const delta = numTarget - from;
 
     function step(now: number) {
       const t = Math.min((now - start) / duration, 1);
@@ -32,7 +33,7 @@ function useCountUp(target: number, duration = 700) {
       if (t < 1) {
         rafRef.current = requestAnimationFrame(step);
       } else {
-        fromRef.current = target;
+        fromRef.current = numTarget;
       }
     }
     rafRef.current = requestAnimationFrame(step);
@@ -40,7 +41,7 @@ function useCountUp(target: number, duration = 700) {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [target, duration]);
+  }, [numTarget, duration]);
 
   return value;
 }
