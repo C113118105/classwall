@@ -3,18 +3,19 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef } from "react";
 
-import { QuestionCard } from "@/components/question-card";
-import { QuestionForm } from "@/components/question-form";
+import { RestaurantCard } from "@/components/restaurant-card";
+import { RestaurantForm } from "@/components/restaurant-form";
+import { NightMarketMap } from "@/components/night-market-map";
 import { StatsPill } from "@/components/stats-pill";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useQuestions } from "@/lib/use-questions";
+import { useRestaurants } from "@/lib/use-restaurants";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 
 export default function Home() {
-  const { questions, loading, loadingMore, hasMore, error, loadMore } =
-    useQuestions(PAGE_SIZE);
+  const { restaurants, loading, loadingMore, hasMore, error, loadMore } =
+    useRestaurants(PAGE_SIZE);
   const spotlightRef = useRef<HTMLDivElement>(null);
 
   // 滑鼠跟隨光暈：直接寫 CSS var，零 React 介入
@@ -29,10 +30,12 @@ export default function Home() {
     return () => window.removeEventListener("pointermove", onMove);
   }, []);
 
-  // 排序由 DB + useQuestions hook 統一負責，這裡直接渲染
-  const totalLikes = useMemo(
-    () => questions.reduce((sum, q) => sum + q.likes, 0),
-    [questions]
+  // 排序由 DB + useRestaurants hook 統一負責，這裡直接渲染
+  const avgRating = useMemo(
+    () => (restaurants.length > 0
+      ? (restaurants.reduce((sum, r) => sum + r.avg_rating, 0) / restaurants.length).toFixed(1)
+      : 0),
+    [restaurants]
   );
 
   return (
@@ -51,7 +54,7 @@ export default function Home() {
               transition: { staggerChildren: 0.09, delayChildren: 0.05 },
             },
           }}
-          className="relative overflow-hidden rounded-[2rem] border border-border/70 bg-card/65 p-5 shadow-[0_1px_0_oklch(0.92_0.02_70_/_0.7),0_40px_80px_-44px_oklch(0.35_0.05_48_/_0.36)] backdrop-blur-md sm:p-8"
+          className="relative overflow-hidden rounded-[2rem] border border-border/70 bg-card/65 p-5 shadow-[0_1px_0_oklch(0.92_0.02_70/0.7),0_40px_80px_-44px_oklch(0.35_0.05_48/0.36)] backdrop-blur-md sm:p-8"
         >
           <span
             aria-hidden
@@ -73,7 +76,7 @@ export default function Home() {
           >
             <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
               <span className="inline-block h-px w-6 bg-foreground/30" />
-              <span>AI × 教學 · 2026</span>
+              <span>🍜 高雄美食 · 2026</span>
             </div>
                 <div className="lg:hidden">
                   <ThemeToggle />
@@ -87,8 +90,8 @@ export default function Home() {
             }}
             className="font-display text-5xl leading-[0.95] tracking-tight sm:text-6xl"
           >
-            <span className="italic">Class</span>
-            <span>Wall</span>
+            <span className="text-2xl">🌃 高雄夜市</span>
+            <span className="block">美食地圖</span>
             <span className="text-primary">.</span>
           </motion.h1>
 
@@ -99,11 +102,11 @@ export default function Home() {
             }}
             className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground sm:text-base"
           >
-            一道屬於這間教室的匿名問答牆——
+            探索高雄最夯的夜市美食——
             <span className="font-display italic text-foreground">
-              想問什麼，就大方問
+              推薦愛店，分享美味
             </span>
-            。 即時同步、按讚衝榜、誰都看得到。
+            。 即時同步、評分排榜、全民共享。
           </motion.p>
 
           <motion.div
@@ -113,8 +116,8 @@ export default function Home() {
             }}
             className="flex flex-wrap items-center gap-2 pt-1"
           >
-            <StatsPill label="問題" value={questions.length} />
-            <StatsPill label="總 +1" value={totalLikes} accent />
+            <StatsPill label="店家" value={restaurants.length} />
+            <StatsPill label="平均評分" value={avgRating} accent />
             <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/60 backdrop-blur-md px-3 py-1.5 text-[12px]">
               <span className="live-dot" aria-hidden />
               <span className="text-muted-foreground">即時連線中</span>
@@ -152,26 +155,31 @@ export default function Home() {
               </div>
               <div className="space-y-1">
                 <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                  班級節奏
+                  美食推薦
                 </p>
                 <p className="font-display text-2xl italic leading-none">
-                  Ask. Vote. Flow.
+                  Eat. Rate. Share.
                 </p>
               </div>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                問題會依熱度排序，讓真正想被討論的題目浮上來。
+                美食會依評分排序，讓真正好吃的店家浮上來。
               </p>
             </motion.aside>
           </div>
         </motion.header>
 
-        {/* ============ 發問區 ============ */}
-        <section aria-label="發問區">
-          <QuestionForm />
+        {/* ============ 高雄夜市地圖 ============ */}
+        <section aria-label="高雄夜市地圖">
+          <NightMarketMap />
         </section>
 
-        {/* ============ 問題列表 ============ */}
-        <section aria-label="問題列表" className="flex flex-col gap-3">
+        {/* ============ 新增店家 ============ */}
+        <section aria-label="新增店家">
+          <RestaurantForm />
+        </section>
+
+        {/* ============ 美食列表 ============ */}
+        <section aria-label="美食列表" className="flex flex-col gap-3">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -179,10 +187,10 @@ export default function Home() {
             className="flex items-baseline justify-between gap-3"
           >
             <h2 className="font-display text-2xl tracking-tight sm:text-3xl">
-              牆上的問題
+              高雄美食
             </h2>
             <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
-              依讚數排序 · 每頁 {PAGE_SIZE} 題
+              依評分排序 · 每頁 {PAGE_SIZE} 家
             </span>
           </motion.div>
 
@@ -192,24 +200,24 @@ export default function Home() {
             <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center text-sm text-destructive">
               讀取失敗：{error}
             </div>
-          ) : questions.length === 0 ? (
+          ) : restaurants.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="rounded-2xl border border-dashed border-border/70 bg-card/40 py-16 text-center"
             >
               <p className="font-display text-2xl italic text-muted-foreground">
-                還沒有人發問
+                還沒有店家
               </p>
               <p className="mt-2 text-sm text-muted-foreground/80">
-                你來當第一個 ✨
+                快來分享你的愛店 🍜
               </p>
             </motion.div>
           ) : (
             <div className="flex flex-col gap-3">
               <AnimatePresence mode="popLayout" initial={false}>
-                {questions.map((question) => (
-                  <QuestionCard key={question.id} question={question} />
+                {restaurants.map((restaurant) => (
+                  <RestaurantCard key={restaurant.id} restaurant={restaurant} />
                 ))}
               </AnimatePresence>
 

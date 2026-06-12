@@ -102,6 +102,12 @@
 - `NEXT_PUBLIC_SUPABASE_URL` = 上一步的 Project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = 上一步的 anon key
 
+專案已包含 `vercel.json`：
+
+- `installCommand`: `npm install`
+- `buildCommand`: `npm run build`
+- `devCommand`: `npm run dev`
+
 按 **Deploy**，1～2 分鐘後拿到 `https://classwall-<你的名字>.vercel.app`，手機就打得開！
 
 > 之後每次 `git push` 進 main，Vercel 都會**自動重新部署**。
